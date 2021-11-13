@@ -98,11 +98,14 @@ void main(){
 
 //-------------------------------PROGRAMA-------------------------------------------------------------
 
+    while(1){
     //pintamos pantalla inicial
     //fondo
-    Nueva_pantalla(16,16,16);
+        Lee_pantalla();
+        Nueva_pantalla(16,16,16);
 
-    teclado(35);
+        teclado(35);
 
-    Dibuja();
+        Dibuja();
+    }
 }
