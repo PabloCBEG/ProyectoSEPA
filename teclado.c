@@ -270,7 +270,7 @@ void main(){
         ComFgcolor(0,122,116);
         ComColor(255, 255, 255);
         teclado(35);
-
+        ComTXT(HSIZE/2, VSIZE/4, 22, OPT_CENTER,texto_introducido);
         Dibuja();
     }
 }
