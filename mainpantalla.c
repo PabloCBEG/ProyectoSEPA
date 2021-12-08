@@ -83,25 +83,9 @@ int RELOJ;
 int estado;
 
 
-uint32_t Puerto[]={
-        GPIO_PORTN_BASE,
-        GPIO_PORTN_BASE,
-        GPIO_PORTF_BASE,
-        GPIO_PORTF_BASE, //Puertos de los leds
-
-};
-uint32_t Pin[]={
-        GPIO_PIN_1,
-        GPIO_PIN_0,
-        GPIO_PIN_4,
-        GPIO_PIN_0,
-        }; //Pines de los leds
-
 //Periodos para los timers
 uint32_t periodo0_global; //Timer 0
 uint32_t periodo1_global; //Timer 1
-uint32_t periodo2_global; //Timer 2
-uint32_t periodo3_global; //Timer 3
 
 
 //VARIABLES GLOBALES
@@ -179,8 +163,11 @@ char *cadena; //Cadena auxiliar para trabajar sobre los archivos de texto
 
 
 //Variables para las opciones de configuracion
-int mostrar_reloj = 0;
-
+int mostrar_reloj = 0; //Flag para ver si se debe mostrar el reloj
+int mostrar_reloj_pulsado = 0; //Flag para que el estado de la variable "mostrar_reloj" se cambie al dejar del pulsar el boton anterior
+int r_c = 12; //Valores RGB para el fondo de pantalla. El valor inicial es un valor de celeste
+int g_c = 183;
+int b_c = 242;
 //Para definir un widget
 //Mirar libreria de programacion FT800
 //ft800.tiva.c
@@ -354,11 +341,6 @@ void keys(int16_t x, int16_t y, int16_t w, int16_t h, int16_t font, uint16_t opt
             }
         }
 
-//        logico = 0;
-//        if (contador_cadena > 0) logico=1;
-//        Boton(xaux+contador_cadena*logico*(w+3), y, w, h, font, &aux);
-//        logico = 1;
-//        UARTprintf("%c", aux);
     }
 }
 
@@ -601,7 +583,7 @@ int main(void) {
 
             Lee_pantalla();
             Nueva_pantalla(16,16,16);
-            ComColor(12, 183, 242); //Valores RGB del celeste del fondo de la pantalla
+            ComColor(r_c, g_c, b_c); //Valores RGB del celeste del fondo de la pantalla
             ComLineWidth(5);
             ComRect(1, 1, HSIZE-1, VSIZE-1, true);
 
@@ -907,6 +889,7 @@ int main(void) {
                     break;
                 case 4:
                     //Estado de los ajustes
+
                     //Pintamos boton para mostrar reloj o no
                     if(mostrar_reloj == 0)//Pintamos un cuadro al lado en blanco si no esta seleccionado
                     {
@@ -925,17 +908,53 @@ int main(void) {
                     ComFgcolor(255, 255, 255);
                     if(Boton(((HSIZE)/2)-50,(VSIZE/4)-10, 60, 20, 16, "Pon/Quita reloj"))
                     {
-                        if(mostrar_reloj == 0)
+                        if(mostrar_reloj_pulsado == 0) //No habiamos pulsado el boton anteriormente
                         {
-                            mostrar_reloj = 1; //Si no estaba puesto y se pulsa, se debe poner
+                            mostrar_reloj_pulsado = 1;
                         }
                         else
                         {
-                            mostrar_reloj = 0; //Si estaba puesto y se pulsa, se debe retirar
+                            mostrar_reloj_pulsado = 1;
+                        }
+                    }
+                    else
+                    {
+                        if(mostrar_reloj_pulsado == 1) //Se ha pulsado el boton del reloj anteriormente, y lo acabamos de soltar
+                        {
+                            if(mostrar_reloj == 0)
+                            {
+                                mostrar_reloj = 1;
+                            }
+                            else
+                            {
+                                mostrar_reloj = 0;
+                            }
+                            mostrar_reloj_pulsado = 0; //Liberamos la flag
                         }
                     }
 
+                    //Pintamos barras para cambiar el valor del fondo de pantalla
+                    Lee_pantalla();
 
+                    ComTXT(HSIZE/2,(VSIZE/2),16,OPT_CENTER,"Valores RGB del fondo");
+
+                    /* Pintar Scrollbars y leer valores rgb*/
+                    //R
+                    ComFgcolor(200,10,10);
+                    ComBgcolor(150,5,5);
+                    if(POSX>35 && POSX<HSIZE-35 && POSY>130 && POSY <155 && POSX!=0x8000) r_c=((POSX-35)*255)/(HSIZE-70);
+                    ComScrollbar(35,(VSIZE/2)+30,HSIZE-70,20,0,r_c,0,255);
+
+                    //G
+                    ComFgcolor(10,200,10);
+                    ComBgcolor(5,150,5);
+                    if(POSX>35 && POSX<HSIZE-35 && POSY>170 && POSY <195 && POSX!=0x8000) g_c=((POSX-35)*255)/(HSIZE-70);
+                    ComScrollbar(35,(VSIZE/2)+60,HSIZE-70,20,0,g_c,0,255);
+                    //B
+                    ComFgcolor(10,10,200);
+                    ComBgcolor(5,5,150);
+                    if(POSX>35 && POSX<HSIZE-35 && POSY>210 && POSY <235 && POSX!=0x8000) b_c=((POSX-35)*255)/(HSIZE-70);
+                    ComScrollbar(35,(VSIZE/2)+90,HSIZE-70,20,0,b_c,0,255);
 
                     //Pintamos boton para volver
                     ComColor(255,255,255);
