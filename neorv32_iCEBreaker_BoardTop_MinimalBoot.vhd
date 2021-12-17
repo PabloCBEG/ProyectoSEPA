@@ -60,6 +60,7 @@ entity neorv32_iCEBreaker_BoardTop_MinimalBoot is
     iCEBreakerv10_PMOD2_9_Button_1   : in std_logic;
     iCEBreakerv10_PMOD2_10_Button_3  : in std_logic;
 
+    --Puerto B
     --Pines de entrada
     iCEBreakerv10_PMOD1B_7           : in std_logic;
     iCEBreakerv10_PMOD1B_8           : in std_logic;
@@ -70,6 +71,18 @@ entity neorv32_iCEBreaker_BoardTop_MinimalBoot is
     iCEBreakerv10_PMOD1B_2 : out std_logic;
     iCEBreakerv10_PMOD1B_3 : out std_logic;
     iCEBreakerv10_PMOD1B_4 : out std_logic;
+        
+    --Puerto A
+    --Pines de entrada
+    iCEBreakerv10_PMOD1A_7           : in std_logic;
+    iCEBreakerv10_PMOD1A_8           : in std_logic;
+    iCEBreakerv10_PMOD1A_10          : in std_logic;
+    iCEBreakerv10_PMOD1A_9           : in std_logic;
+    --Pines de salida
+    iCEBreakerv10_PMOD1A_1 : out std_logic;
+    iCEBreakerv10_PMOD1A_2 : out std_logic;
+    iCEBreakerv10_PMOD1A_3 : out std_logic;
+    iCEBreakerv10_PMOD1A_4 : out std_logic;
 
     --Pines de la interfaz Wishbone
 
@@ -249,15 +262,23 @@ controlador_teclado_inst : entity neorv32.controlador_teclado
   reset => std_ulogic(iCEBreakerv10_BTN_N), --Puerto de reseteo
 
   --Pines para la comunicacion con el teclado
-  pines_lectura_teclado(0)   => iCEBreakerv10_PMOD1B_10,
-  pines_lectura_teclado(1)   => iCEBreakerv10_PMOD1B_9,
-  pines_lectura_teclado(2)   => iCEBreakerv10_PMOD1B_8,
-  pines_lectura_teclado(3)   => iCEBreakerv10_PMOD1B_7,
+  --pines_lectura_teclado(0)   => iCEBreakerv10_PMOD1B_10, --Puerto B
+  pines_lectura_teclado(0)   =>   iCEBreakerv10_PMOD1A_10, --Puerto A 
+  --pines_lectura_teclado(1)   => iCEBreakerv10_PMOD1B_9,  --Puerto B
+  pines_lectura_teclado(1)   => iCEBreakerv10_PMOD1A_9,  --Puerto A
+  --pines_lectura_teclado(2)   => iCEBreakerv10_PMOD1B_8,  --Puerto B
+  pines_lectura_teclado(2)   => iCEBreakerv10_PMOD1A_8,  --Puerto A
+  --pines_lectura_teclado(3)   => iCEBreakerv10_PMOD1B_7, --Puerto B
+  pines_lectura_teclado(3)   => iCEBreakerv10_PMOD1A_7,  --Puerto A
 
-  pines_escritura_teclado(0) => iCEBreakerv10_PMOD1B_4,
-  pines_escritura_teclado(1) => iCEBreakerv10_PMOD1B_3,
-  pines_escritura_teclado(2) => iCEBreakerv10_PMOD1B_2,
-  pines_escritura_teclado(3) => iCEBreakerv10_PMOD1B_1,
+  --pines_escritura_teclado(0) => iCEBreakerv10_PMOD1B_4,  --Puerto B
+  pines_escritura_teclado(0) => iCEBreakerv10_PMOD1A_4,  --Puerto A
+  --pines_escritura_teclado(1) => iCEBreakerv10_PMOD1B_3,  --Puerto B
+  pines_escritura_teclado(1) => iCEBreakerv10_PMOD1A_3,  --Puerto A
+  --pines_escritura_teclado(2) => iCEBreakerv10_PMOD1B_2,  --Puerto B
+  pines_escritura_teclado(2) => iCEBreakerv10_PMOD1A_2,  --Puerto A
+  --pines_escritura_teclado(3) => iCEBreakerv10_PMOD1B_1,  --Puerto B
+  pines_escritura_teclado(3) => iCEBreakerv10_PMOD1A_1,  --Puerto A
 
   --Pines para la comunicacion con el microprocesador
 
