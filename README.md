@@ -5,3 +5,7 @@ En este branch se encuentran los archivos de la parte de FPGA dedicados al contr
   -archivo VHDL del todo el sistema.
   -archivo VHDL del controlador de escritura/lectura sobre el teclado.
   -archivo main.c, que es lo ejecutado por el micro. Simplemente lee unas entradas que recibe del controlador en VHDL y muestra por pantalla el resultado.
+  
+ACCIONES A REALIZAR :
+  -Tratar de implementar un detector de flanco entre la salida del controlador del teclado en VHDL y el microprocesador.
+  
