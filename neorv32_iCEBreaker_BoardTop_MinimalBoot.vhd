@@ -164,6 +164,10 @@ architecture neorv32_iCEBreaker_BoardTop_MinimalBoot_rtl of neorv32_iCEBreaker_B
 
   signal gpio_i_int_2 : std_ulogic_vector(63 downto 0);
 
+  --Senal intermedia entre el controlador del teclado y el detector de flanco
+  signal tecl_cont_2_debouncer     : std_logic_vector(15 downto 0);
+  signal debouncer_2_edge_detector : std_logic_vector(15 downto 0);
+
   --Senales p3
   --Senales necesarias para el bus wishbone
   signal wb_adr_m2s_signal : std_ulogic_vector(31 downto 0);
@@ -181,23 +185,27 @@ architecture neorv32_iCEBreaker_BoardTop_MinimalBoot_rtl of neorv32_iCEBreaker_B
 
   --Debouncer:
   component debouncer is
-    Port(
-    clk : in std_logic;
-    reset : in std_logic;
-    button_input : in std_logic;
-    button_out : out std_logic
+    Generic (
+     numero_pines : integer   
     );
-
+    Port ( 
+    clk : in std_logic; --Puerto de reloj
+    reset : in std_logic; --Puerto de reseteo
+    port_input  : in  std_logic_vector(numero_pines-1 downto 0); --Boton de entrada
+    port_output : out std_logic_vector(numero_pines-1 downto 0) --Boton de salida
+    );
   end component;
 
   --Rising edge detector
-  
   component rising_edge_detector is
-    Port(
-    clk : in std_logic;
-    reset : in std_logic;
-    button_input : in std_logic;
-    button_output : out std_logic
+    Generic (
+      numero_pines : integer --Numero de pines de entrada 
+    );
+    Port (
+      clk : in std_logic; --Entrada de reloj
+      reset : in std_logic; --Entrada de reset
+      port_input  : in  std_logic_vector(numero_pines-1 downto 0); --Entrada lógica
+      port_output : out std_logic_vector(numero_pines-1 downto 0) --Salida lógica
     );
   end component;
 
@@ -282,57 +290,40 @@ controlador_teclado_inst : entity neorv32.controlador_teclado
 
   --Pines para la comunicacion con el microprocesador
 
-  pines_escritura_micro      => gpio_i(16-1 downto 0)
-
+  --pines_escritura_micro      => gpio_i(16-1 downto 0)
+  --pines_escritura_micro => tecl_cont_2_edge_detector
+  pines_escritura_micro => tecl_cont_2_debouncer
+  
   );
 
-
   --Instancia del debouncer
+  debouncer_inst_0 : entity neorv32.debouncer 
+    Generic map(
+     numero_pines => 16 
+    )
+    Port map( 
+    clk => std_ulogic(iCEBreakerv10_CLK), --Puerto de reloj
+    reset => std_ulogic(iCEBreakerv10_BTN_N), --Puerto de reseteo
+    port_input  => tecl_cont_2_debouncer, --Boton de entrada
+    --port_output => debouncer_2_edge_detector --Boton de salida
+    port_output => gpio_i(16-1 downto 0)
+    );
+  
 
-  -- debouncer_inst_0: entity neorv32.debouncer
-  --  Port map(
-  --    clk => std_ulogic(iCEBreakerv10_CLK),
-  --    reset => std_ulogic(iCEBreakerv10_BTN_N),
-  --    button_input => iCEBreakerv10_PMOD1B_10,
-      --button_out => gpio_i(0)
-  --    button_out => gpio_i_int(0)
-  --  );
 
-  --debouncer_inst_1: entity neorv32.debouncer
-  --  Port map(
-  --    clk => std_ulogic(iCEBreakerv10_CLK),
-  --    reset => std_ulogic(iCEBreakerv10_BTN_N),
-  --    button_input => iCEBreakerv10_PMOD1B_9,
-  --    button_out => gpio_i(1)
-      --button_out => gpio_i_int(1)
-  --  );
-
-  --debouncer_inst_2: entity neorv32.debouncer
-  --  Port map(
-  --    clk => std_ulogic(iCEBreakerv10_CLK),
-  --    reset => std_ulogic(iCEBreakerv10_BTN_N),
-  --    button_input => iCEBreakerv10_PMOD1B_8,
-  --    button_out => gpio_i(2)
-      --button_out => gpio_i_int(2)
-  --  );
-
-  --debouncer_inst_3: entity neorv32.debouncer
-  --  Port map(
-  --    clk => std_ulogic(iCEBreakerv10_CLK),
-  --    reset => std_ulogic(iCEBreakerv10_BTN_N),
-  --    button_input => iCEBreakerv10_PMOD1B_7,
-  --    button_out => gpio_i(3)
-      --button_out => gpio_i_int(3)
-  --  );
+ 
 
   --Instancia del rising_edge_detector 
   --edge_detector_inst_0: entity neorv32.rising_edge_detector
+  --  Generic map(
+  --    numero_pines => 16 
+  --  )
   --  Port map(
   --    clk => std_ulogic(iCEBreakerv10_CLK),
   --    reset => std_ulogic(iCEBreakerv10_BTN_N),
-  --    button_input => gpio_i_int(0),
-  --    button_output => gpio_i_int_2(0)
-      --button_output => gpio_i(0)
+  --    port_input => debouncer_2_edge_detector,
+--      port_input => tecl_cont_2_debouncer,
+  --    port_output => gpio_i(16-1 downto 0)
   --  );
 
   --edge_detector_inst_1: entity neorv32.rising_edge_detector
