@@ -102,7 +102,8 @@ int main() {
 uint32_t valores_teclado; //Variable para la lectura de los pines del gpio
 uint32_t cont = 15;
 uint32_t mascaras[4] = {0x000f,0x00f0,0x0f00,0xf000}; //Mascaras a aplicar
-uint32_t valores_fila_lectura;
+uint32_t valores_fila_lectura[4];
+uint32_t valores_fila_lectura_anterior[4];
 
 char arr1[NUM_STRINGS][MAX_LENGTH] = {"NADA","1","4","1 y 4","7","1 y 7","4 y 7","1 y 4 y 7","0","1 y 0","4 y 0","1 y 4 y 0","7 y 0","1 y 7 y 0","4 y 7 y 0","1 y 4 y 7 y 0"};
 char arr2[NUM_STRINGS][MAX_LENGTH] = {"NADA","2","5","2 y 5","8","2 y 8","5 y 8","2 y 5 y 8","F","2 y F","5 y F","2 y 5 y F","8 y F","2 y 8 y F","5 y 8 y F","2 y 5 y 8 y F"};
@@ -120,38 +121,39 @@ while(1)
     cont = 15;
     for(i=0;i<4;i++)
     {
-        valores_fila_lectura = valores_teclado & mascaras[i];
-        valores_fila_lectura = valores_fila_lectura >>(4*i);
+        valores_fila_lectura[i] = valores_teclado & mascaras[i];
+        valores_fila_lectura[i] = valores_fila_lectura[i] >>(4*i);
         //neorv32_uart0_printf("Valor de valores_fila_lectura : %x\n",valores_fila_lectura);
         switch(i)
         {
             case 0:
-                if(valores_fila_lectura > 0)
+                if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i])
                 {
-                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr1[valores_fila_lectura]);
+                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr1[valores_fila_lectura[i]]);
                 }
                 break;
             case 1:
-                if(valores_fila_lectura > 0)
+                if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i])
                 {
-                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr2[valores_fila_lectura]);
+                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr2[valores_fila_lectura[i]]);
                 }
                 break;
             case 2:
-                if(valores_fila_lectura > 0)
+                if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i]) 
                 {
-                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr3[valores_fila_lectura]);
+                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr3[valores_fila_lectura[i]]);
                 }
                 break;
             case 3:
-                if(valores_fila_lectura > 0)
+                if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i])
                 {
-                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr4[valores_fila_lectura]);
+                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr4[valores_fila_lectura[i]]);
                 }
                 break;
             default:
                 break;
         }
+        valores_fila_lectura_anterior[i] = valores_fila_lectura[i];
     }
         
 
