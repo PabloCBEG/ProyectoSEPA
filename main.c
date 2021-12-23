@@ -53,6 +53,8 @@
 /**@}*/
 #define NUM_FILAS 4 //Numero de filas del teclado
 #define NUM_COLUMNAS 4 //Numero de columnas del teclado
+#define NUM_STRINGS  16
+#define MAX_LENGTH  100
 
 
 /**********************************************************************//**
@@ -73,8 +75,6 @@ void blink_led_c(void);
  *
  * @return 0 if execution was successful
  **************************************************************************/
- int escribe(uint32_t vector_de_pines_out);
- int lectura(void);
 int main() {
 
   // init UART (primary UART = UART0; if no id number is specified the primary UART is used) at default baud rate, no parity bits, ho hw flow control
@@ -91,15 +91,7 @@ int main() {
   neorv32_rte_setup();
 
   // say hello
-  neorv32_uart0_print("Blinking LED demo program\n");
-
-int i,j;
-uint32_t cont = 1;
-
-int columna;
-int fila;
-uint32_t primero = 1;
-neorv32_uart0_printf("El valor de cont en la primera vuelta es : %u\n",cont);
+  neorv32_uart0_print("Practica 2 extendido.\n");
 // use ASM version of LED blinking (file: blink_led_in_asm.S)
 #ifdef USE_ASM_VERSION
 
@@ -107,111 +99,72 @@ neorv32_uart0_printf("El valor de cont en la primera vuelta es : %u\n",cont);
 
 // use C version of LED blinking
 #else
+uint32_t valores_teclado; //Variable para la lectura de los pines del gpio
+uint32_t cont = 15;
+uint32_t mascaras[4] = {0x000f,0x00f0,0x0f00,0xf000}; //Mascaras a aplicar
+uint32_t valores_fila_lectura[4];
+uint32_t valores_fila_lectura_anterior[4];
+
+
+//Variables para el control del servo
+uint32_t porcentaje_servo = 0; //Inicialmente es 50
+
+char arr1[NUM_STRINGS][MAX_LENGTH] = {"NADA","1","4","1 y 4","7","1 y 7","4 y 7","1 y 4 y 7","0","1 y 0","4 y 0","1 y 4 y 0","7 y 0","1 y 7 y 0","4 y 7 y 0","1 y 4 y 7 y 0"};
+char arr2[NUM_STRINGS][MAX_LENGTH] = {"NADA","2","5","2 y 5","8","2 y 8","5 y 8","2 y 5 y 8","F","2 y F","5 y F","2 y 5 y F","8 y F","2 y 8 y F","5 y 8 y F","2 y 5 y 8 y F"};
+char arr3[NUM_STRINGS][MAX_LENGTH] = {"NADA","3","6","3 y 6","9","3 y 9","6 y 9","3 y 6 y 9","E","3 y E","6 y E","3 y 6 y E","9 y E","3 y 9 y E","6 y 9 y E","3 y 6 y 9 y E"};
+char arr4[NUM_STRINGS][MAX_LENGTH] = {"NADA","A","B","A y B","C","A y C","B y C","A y B y C","D","A y D","B y D","A y B y D","C y D","A y C y D","B y C y D","A y B y C y D"};
+
+
+int i; //Variable auxiliar para el bucle
 while(1)
 {
-
-    
-    for(i=0;i<=3;i++)
+    valores_teclado = neorv32_gpio_port_get(); //Obtencion del vector de valores del teclado. Solo nos interesan los 16 menos significativos
+    valores_teclado = ~valores_teclado; //Se niega. Por lo tanto, si es un 1, significa que esta pulsado, ya que antes era activa a nivel bajo.
+    //valores_teclado = valores_teclado << 4;
+    //neorv32_uart0_printf("Valor de valores_teclado : %x\n",valores_teclado);
+    cont = 15;
+    for(i=0;i<4;i++)
     {
-        if(i==0)
+        valores_fila_lectura[i] = valores_teclado & mascaras[i];
+        valores_fila_lectura[i] = valores_fila_lectura[i] >>(4*i);
+        //neorv32_uart0_printf("Valor de valores_fila_lectura : %x\n",valores_fila_lectura);
+        switch(i)
         {
-            cont = 1;
+            case 0:
+                if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i])
+                {
+                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr1[valores_fila_lectura[i]]);
+                }
+                break;
+            case 1:
+                if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i])
+                {
+                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr2[valores_fila_lectura[i]]);
+                }
+                break;
+            case 2:
+                if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i]) 
+                {
+                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr3[valores_fila_lectura[i]]);
+                }
+                break;
+            case 3:
+                if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i])
+                {
+                    neorv32_uart0_printf("Se ha pulsado : %s.\n",arr4[valores_fila_lectura[i]]);
+                }
+                break;
+            default:
+                break;
         }
-        else
-        {
-            cont <<= 1;
-        }
-        //neorv32_uart0_printf("El valor de cont es : %u\n",cont);
-        fila = escribe(cont);
-        columna = i;
-        //neorv32_uart0_printf("fila : %u\n",fila);
-        //neorv32_uart0_printf("columna : %u\n",columna);
-        
-        if(columna == 0)
-        {
-            if(fila == 0)
-            {
-                neorv32_uart0_printf("Se ha pulsado 1\n");
-            }
-            
-            else if(fila == 1)
-            {
-                neorv32_uart0_print("Se ha pulsado 4\n");
-            }
-            else if(fila == 2)
-            {
-                neorv32_uart0_print("Se ha pulsado 7\n");
-            }
-            else if(fila == 3)
-            {
-                neorv32_uart0_print("Se ha pulsado 0\n");
-            }
-            
-        }
-        
-        else if(columna == 1)
-        {
-            if(fila == 0)
-            {
-                neorv32_uart0_print("Se ha pulsado 2\n");
-            }
-            else if(fila == 1)
-            {
-                neorv32_uart0_print("Se ha pulsado 5\n");
-            }
-            else if(fila == 2)
-            {
-                neorv32_uart0_print("Se ha pulsado 8\n");
-            }
-            else if(fila == 3)
-            {
-                neorv32_uart0_print("Se ha pulsado F\n");
-            }
-        }
-        else if(columna == 2)
-        {
-            
-            //neorv32_uart0_printf("El columna 2, valor de fila : %u\n",fila);
-            if(fila == 0)
-            {
-                neorv32_uart0_print("Se ha pulsado 3\n");
-            }
-            else if(fila == 1)
-            {
-                neorv32_uart0_print("Se ha pulsado 6\n");
-            }
-            else if(fila == 2)
-            {
-                neorv32_uart0_print("Se ha pulsado 9\n");
-            }
-            else if(fila == 3)
-            {
-                neorv32_uart0_print("Se ha pulsado E\n");
-            }
-        }
-        else if(columna == 3)
-        {
-            if(fila == 0)
-            {
-                neorv32_uart0_print("Se ha pulsado A\n");
-            }
-            else if(fila == 1)
-            {
-                neorv32_uart0_print("Se ha pulsado B\n");
-            }
-            else if(fila == 2)
-            {
-                neorv32_uart0_print("Se ha pulsado C\n");
-            }
-            else if(fila == 3)
-            {
-                neorv32_uart0_print("Se ha pulsado D\n");
-            }
-        }
-        
-
-        
+        valores_fila_lectura_anterior[i] = valores_fila_lectura[i];
     }
+        
+    //Parte encarga de dar valores a la senal del controlador
+    //Recordamos que debemos escribir sobre los 7 pines significativos del controlador el valor
+    neorv32_gpio_port_set(porcentaje_servo);
+    neorv32_uart0_printf("El valor de porcentaje servo es : %x.\n",porcentaje_servo);
+
     
 }
 
@@ -224,44 +177,4 @@ while(1)
 /**********************************************************************//**
  * C-version of blinky LED counter
  **************************************************************************/
- /*
-void blink_led_c(void) {
 
-  neorv32_gpio_port_set(0); // clear gpio output
-
-  int cnt = 0;
-
-  while (1) {
-    neorv32_gpio_port_set(cnt++ & 0xFF); // increment counter and mask for lowest 8 bit
-    neorv32_cpu_delay_ms(200); // wait 200ms using busy wait
-  }
-}
-*/
-int escribe(uint32_t vector_de_pines_out)
-{
-    
-    //neorv32_gpio_pin_set(~vector_de_pines_out); //Se debe activar a nivel bajo 
-    neorv32_gpio_port_set(~vector_de_pines_out); //Escribimos sobre todo el puerto de pines
-    //neorv32_uart0_printf("El valor negado de cont es : %x\n",~vector_de_pines_out);
-    int fila_activada;
-    fila_activada = lectura();
-    return fila_activada;
-
-}
-int lectura(void)
-{
-    int fila_activada = 6;
-    int i;
-    for(i=0;i<=3;i++)
-    {
-            
-        if(neorv32_gpio_pin_get(i) == 0) //Porque se activa a nivel bajo. Sin embargo, al haber introducido el rising_edge_detector, hemos cambiado este comportamiento
-        {
-            fila_activada = i;
-            neorv32_uart0_printf("  activada fila: %u.\n", fila_activada);
-        }
-        
-        
-    }
-    return fila_activada;
-}
