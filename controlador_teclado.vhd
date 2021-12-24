@@ -23,8 +23,8 @@ entity controlador_teclado is
         numero_elementos_teclado : integer --Numero de teclas en el teclado
     );
     Port ( 
-    clk : in std_logic; --Puerto de reloj
-    reset : in std_logic; --Puerto de reseteo
+    clk : in std_logic;         --Pin de reloj
+    reset : in std_logic;       --Pin de reseteo
 
     --Pines para la comunicacion con el teclado
     pines_lectura_teclado   : in  std_logic_vector(numero_pines-1 downto 0);
