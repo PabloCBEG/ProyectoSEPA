@@ -170,16 +170,16 @@ architecture neorv32_iCEBreaker_BoardTop_MinimalBoot_rtl of neorv32_iCEBreaker_B
 
   --Senales p3
   --Senales necesarias para el bus wishbone
-  signal wb_adr_m2s_signal : std_ulogic_vector(31 downto 0);
-  signal wb_dat_s2m_signal : std_ulogic_vector(31 downto 0);
-  signal wb_dat_m2s_signal : std_ulogic_vector(31 downto 0);
-  signal wb_we_m2s_signal : std_logic;
-  signal wb_sel_m2s_signal : std_ulogic_vector(3 downto 0);
-  signal wb_stb_m2s_signal : std_logic;
-  signal wb_cyc_m2s_signal : std_logic;
-  signal wb_lock_m2s_signal : std_logic;
-  signal wb_ack_s2m_signal : std_logic;
-  signal wb_err_s2m_signal : std_logic;
+  signal wb_adr_m2s_signal : std_ulogic_vector(31 downto 0);  --direcciones,  master to slave
+  signal wb_dat_s2m_signal : std_ulogic_vector(31 downto 0);  --datos,        slave to master
+  signal wb_dat_m2s_signal : std_ulogic_vector(31 downto 0);  --datos,        master to slave
+  signal wb_we_m2s_signal : std_logic;                        --Write Enable, master to slave
+  signal wb_sel_m2s_signal : std_ulogic_vector(3 downto 0);   --select,       master to slave
+  signal wb_stb_m2s_signal : std_logic;                       --strobe,       master to slave
+  signal wb_cyc_m2s_signal : std_logic;                       --cycles,       master to slave
+  signal wb_lock_m2s_signal : std_logic;                      --bloqueo,      master to slave
+  signal wb_ack_s2m_signal : std_logic;                       --ack,          slave to master
+  signal wb_err_s2m_signal : std_logic;                       --error,        slave to master
 
 
   --Senales p4
@@ -190,27 +190,27 @@ architecture neorv32_iCEBreaker_BoardTop_MinimalBoot_rtl of neorv32_iCEBreaker_B
   --Controlador del servo
   component controlador_servo is
     Generic (
-     numero_pines  : integer; --Numero de pines de servo(4)
-     pin_conectado : integer  --Pin al que conectamos nuestra salida
+      numero_pines  : integer; --Numero de pines de servo(4)
+      pin_conectado : integer  --Pin al que conectamos nuestra salida
     );
     Port ( 
-    clk : in std_logic; --Puerto de reloj
-    reset : in std_logic; --Puerto de reseteo
-    entrada_microsegundos : in std_logic_vector(10 downto 0); --Porcentaje al que queremos que se mueva el servo
-    port_output : out std_logic_vector(numero_pines-1 downto 0) --Boton de salida
+      clk : in std_logic;   --Pin de reloj
+      reset : in std_logic; --Pin de reseteo
+      entrada_microsegundos : in std_logic_vector(10 downto 0);   --Porcentaje al que queremos que se mueva el servo. Rango entrada: [700,2300]um; offset: 1500um => entradas entre [-800,800]um
+      port_output : out std_logic_vector(numero_pines-1 downto 0) --Boton de salida
     );
   end component;
 
   --Debouncer:
   component debouncer is
     Generic (
-     numero_pines : integer   
+      numero_pines : integer   
     );
     Port ( 
-    clk : in std_logic; --Puerto de reloj
-    reset : in std_logic; --Puerto de reseteo
-    port_input  : in  std_logic_vector(numero_pines-1 downto 0); --Boton de entrada
-    port_output : out std_logic_vector(numero_pines-1 downto 0) --Boton de salida
+      clk : in std_logic;   --Pin de reloj
+      reset : in std_logic; --Pin de reseteo
+      port_input  : in  std_logic_vector(numero_pines-1 downto 0);  --Boton de entrada
+      port_output : out std_logic_vector(numero_pines-1 downto 0)   --Boton de salida
     );
   end component;
 
@@ -220,17 +220,17 @@ architecture neorv32_iCEBreaker_BoardTop_MinimalBoot_rtl of neorv32_iCEBreaker_B
       numero_pines : integer --Numero de pines de entrada 
     );
     Port (
-      clk : in std_logic; --Entrada de reloj
-      reset : in std_logic; --Entrada de reset
-      port_input  : in  std_logic_vector(numero_pines-1 downto 0); --Entrada lógica
-      port_output : out std_logic_vector(numero_pines-1 downto 0) --Salida lógica
+      clk : in std_logic;   --Pin de reloj
+      reset : in std_logic; --Pin de reset
+      port_input  : in  std_logic_vector(numero_pines-1 downto 0);  --Entrada logica
+      port_output : out std_logic_vector(numero_pines-1 downto 0)   --Salida logica
     );
   end component;
 
   --Controlador escritura/lectura teclado
   component controlador_teclado is
     Generic(
-      numero_pines   : integer; --Numero de pines sobre los que tenemos que escribir y leer
+      numero_pines   : integer;           --Numero de pines sobre los que tenemos que escribir y leer
       numero_elementos_teclado : integer  --Numero de teclas en el teclado
     );
     Port ( 
@@ -281,34 +281,35 @@ begin
   --Entidad del controlador del servo
   controlador_servo_inst : entity neorv32.controlador_servo
 
-    Generic map(
-     numero_pines  => 4, --Numero de pines de servo(4)
-     pin_conectado => 1  --Pin al que conectamos nuestra salida
-    )
-    Port map( 
-    clk              => std_ulogic(iCEBreakerv10_CLK), --Puerto de reloj
-    reset            => std_ulogic(iCEBreakerv10_BTN_N), --Puerto de reseteo
-    entrada_microsegundos => micro_2_cont_servo, --Porcentaje al que queremos que se mueva el servo
-    port_output(0)      => iCEBreakerv10_PMOD1A_1,
-    port_output(1)      => iCEBreakerv10_PMOD1A_2,
-    port_output(2)      => iCEBreakerv10_PMOD1A_3,
-    port_output(3)      => iCEBreakerv10_PMOD1A_4 --Boton de salida
-    );
+  Generic map(
+    numero_pines  => 4, --Numero de pines de servo(4)
+    pin_conectado => 1  --Pin al que conectamos nuestra salida
+  )
+  Port map( 
+    clk                   => std_ulogic(iCEBreakerv10_CLK),   --Puerto de reloj
+    reset                 => std_ulogic(iCEBreakerv10_BTN_N), --Puerto de reseteo
+    entrada_microsegundos => micro_2_cont_servo,              --Porcentaje al que queremos que se mueva el servo
+    port_output(0)        => iCEBreakerv10_PMOD1A_1,
+    port_output(1)        => iCEBreakerv10_PMOD1A_2,
+    port_output(2)        => iCEBreakerv10_PMOD1A_3,
+    port_output(3)        => iCEBreakerv10_PMOD1A_4           --Boton de salida
+  );
 
 
   --Entidad del controlador de teclado
-controlador_teclado_inst : entity neorv32.controlador_teclado
+  controlador_teclado_inst : entity neorv32.controlador_teclado
+  
   Generic map(
-      numero_pines   => 4, --Numero de pines sobre los que tenemos que escribir y leer
-      numero_elementos_teclado => 16 --Numero de teclas en el teclado
+      numero_pines   => 4,            --Numero de pines sobre los que tenemos que escribir y leer
+      numero_elementos_teclado => 16  --Numero de teclas en el teclado
   )
   Port map( 
-  clk   => std_ulogic(iCEBreakerv10_CLK), --Puerto de reloj
-  reset => std_ulogic(iCEBreakerv10_BTN_N), --Puerto de reseteo
+  clk   => std_ulogic(iCEBreakerv10_CLK),   --Pin de reloj
+  reset => std_ulogic(iCEBreakerv10_BTN_N), --Pin de reseteo
 
   --Pines para la comunicacion con el teclado
   pines_lectura_teclado(0)   => iCEBreakerv10_PMOD1B_10, --Puerto B
-  --pines_lectura_teclado(0)   =>   iCEBreakerv10_PMOD1A_10, --Puerto A 
+  --pines_lectura_teclado(0)   => iCEBreakerv10_PMOD1A_10, --Puerto A 
   pines_lectura_teclado(1)   => iCEBreakerv10_PMOD1B_9,  --Puerto B
   --pines_lectura_teclado(1)   => iCEBreakerv10_PMOD1A_9,  --Puerto A
   pines_lectura_teclado(2)   => iCEBreakerv10_PMOD1B_8,  --Puerto B
@@ -334,57 +335,52 @@ controlador_teclado_inst : entity neorv32.controlador_teclado
   );
 
   --Instancia del debouncer
-  debouncer_inst_0 : entity neorv32.debouncer 
-    Generic map(
-     numero_pines => 16 
-    )
-    Port map( 
-    clk => std_ulogic(iCEBreakerv10_CLK), --Puerto de reloj
-    reset => std_ulogic(iCEBreakerv10_BTN_N), --Puerto de reseteo
-    port_input  => tecl_cont_2_debouncer, --Boton de entrada
+  debouncer_inst_0 : entity neorv32.debouncer
+  
+  Generic map(
+    numero_pines => 16 
+  )
+  Port map( 
+    clk         => std_ulogic(iCEBreakerv10_CLK),   --Pin de reloj
+    reset       => std_ulogic(iCEBreakerv10_BTN_N), --Pin de reseteo
+    port_input  => tecl_cont_2_debouncer,           --Boton de entrada
     --port_output => debouncer_2_edge_detector --Boton de salida
     port_output => gpio_i(16-1 downto 0)
-    );
+  );
   
 
 
- 
-
-  
-
-
-  --Instancia del periferioc Wishbone
-
-  periph_wishbone : entity neorv32.wb_regs 
-    Generic map (
-      WB_ADDR_BASE => x"90000000",--to_stdulogicvector( 1001 0000 0000 0000 0000 0000 0000 0000), -- module base address, size-aligned
-      WB_ADDR_SIZE => 16                        -- module address space in bytes, has to be a power of two, min 4
-    )
-    Port map (
-      -- wishbone host interface --
-      --  signal wb_adr_m2s_signal : std_ulogic_vector(31 downto 0);
-      --  signal wb_dat_s2m_signal : std_ulogic_vector(31 downto 0);
-      --  signal wb_dat_m2s_signal : std_ulogic_vector(31 downto 0);
-      --  signal wb_we_m2s_signal : std_logic;
-      --  signal wb_sel_m2s_signal : std_ulogic_vector(3 downto 0);
-      --  signal wb_stb_m2s_signal : std_logic;
-      --  signal wb_cyc_m2s_signal : std_logic;
-      --  signal wb_lock_m2s_signal : std_logic;
-      --  signal wb_ack_s2m_signal : std_logic;
-      --  signal wb_err_s2m_signal : std_logic;
-      wb_clk_i  => std_ulogic(iCEBreakerv10_CLK),                     -- clock
-      wb_rstn_i => std_ulogic(iCEBreakerv10_BTN_N),                     -- reset, async, low-active
-      wb_adr_i  => wb_adr_m2s_signal, -- address
-      wb_dat_i  => wb_dat_m2s_signal, -- read data
-      wb_dat_o  => wb_dat_s2m_signal ,
-       -- write data
-      wb_we_i   => wb_we_m2s_signal,                     -- read/write
-      wb_sel_i  => wb_sel_m2s_signal, -- byte enable
-      wb_stb_i  => wb_stb_m2s_signal,                     -- strobe
-      wb_cyc_i  => wb_cyc_m2s_signal,                     -- valid cycle
-      wb_ack_o  => wb_ack_s2m_signal,                     -- transfer acknowledge
-      wb_err_o  => wb_err_s2m_signal                      -- transfer error
-    );
+  --Instancia del periferico Wishbone
+  periph_wishbone : entity neorv32.wb_regs
+    
+  Generic map (
+    WB_ADDR_BASE => x"90000000",--to_stdulogicvector( 1001 0000 0000 0000 0000 0000 0000 0000), -- module base address, size-aligned
+    WB_ADDR_SIZE => 16          -- module address space in bytes, has to be a power of two, min 4
+  )
+  Port map (
+    -- wishbone host interface --
+    --  signal wb_adr_m2s_signal  : std_ulogic_vector(31 downto 0);
+    --  signal wb_dat_s2m_signal  : std_ulogic_vector(31 downto 0);
+    --  signal wb_dat_m2s_signal  : std_ulogic_vector(31 downto 0);
+    --  signal wb_we_m2s_signal   : std_logic;
+    --  signal wb_sel_m2s_signal  : std_ulogic_vector(3 downto 0);
+    --  signal wb_stb_m2s_signal  : std_logic;
+    --  signal wb_cyc_m2s_signal  : std_logic;
+    --  signal wb_lock_m2s_signal : std_logic;
+    --  signal wb_ack_s2m_signal  : std_logic;
+    --  signal wb_err_s2m_signal  : std_logic;
+    wb_clk_i  => std_ulogic(iCEBreakerv10_CLK),   -- clock
+    wb_rstn_i => std_ulogic(iCEBreakerv10_BTN_N), -- reset, async, low-active
+    wb_adr_i  => wb_adr_m2s_signal,               -- address
+    wb_dat_i  => wb_dat_m2s_signal,               -- read data
+    wb_dat_o  => wb_dat_s2m_signal ,              -- write data
+    wb_we_i   => wb_we_m2s_signal,                -- read/write
+    wb_sel_i  => wb_sel_m2s_signal,               -- byte enable
+    wb_stb_i  => wb_stb_m2s_signal,               -- strobe
+    wb_cyc_i  => wb_cyc_m2s_signal,               -- valid cycle
+    wb_ack_o  => wb_ack_s2m_signal,               -- transfer acknowledge
+    wb_err_o  => wb_err_s2m_signal                -- transfer error
+  );
 
   ----------------------------------------------------------------------------------------------
 
@@ -472,6 +468,7 @@ controlador_teclado_inst : entity neorv32.controlador_teclado
     jtag_tdo_o  => open,                         -- serial data output
     jtag_tms_i  => '0',                          -- mode select
 
+    
     -- Wishbone bus interface (available if MEM_EXT_EN = true) --
     --IMPORTANTE PRACTICA 3
 
@@ -486,27 +483,27 @@ controlador_teclado_inst : entity neorv32.controlador_teclado
   --  signal wb_ack_s2m_signal : std_logic;
   --  signal wb_err_s2m_signal : std_logic;
 
-    wb_tag_o    => open,                         -- request tag
+    wb_tag_o    => open,                            -- request tag
   --  wb_adr_o    => open,                         -- address
-    wb_adr_o    => wb_adr_m2s_signal,                         -- address
+    wb_adr_o    => wb_adr_m2s_signal,               -- address
   --  wb_dat_i    => (others => '0'),              -- read data
-    wb_dat_i    => wb_dat_s2m_signal,              -- read data
+    wb_dat_i    => wb_dat_s2m_signal,               -- read data
   --  wb_dat_o    => open,                         -- write data
-    wb_dat_o    => wb_dat_m2s_signal,                         -- write data
+    wb_dat_o    => wb_dat_m2s_signal,               -- write data
   --  wb_we_o     => open,                         -- read/write
-    wb_we_o     => wb_we_m2s_signal,                         -- read/write
+    wb_we_o     => wb_we_m2s_signal,                -- read/write
   --  wb_sel_o    => open,                         -- byte enable
-    wb_sel_o    => wb_sel_m2s_signal,                         -- byte enable
+    wb_sel_o    => wb_sel_m2s_signal,               -- byte enable
   --  wb_stb_o    => open,                         -- strobe
-    wb_stb_o    => wb_stb_m2s_signal,                         -- strobe
+    wb_stb_o    => wb_stb_m2s_signal,               -- strobe
   --  wb_cyc_o    => open,                         -- valid cycle
-    wb_cyc_o    => wb_cyc_m2s_signal,                         -- valid cycle
+    wb_cyc_o    => wb_cyc_m2s_signal,               -- valid cycle
   --  wb_lock_o   => open,                         -- exclusive access request
-    wb_lock_o   => wb_lock_m2s_signal,                         -- exclusive access request
+    wb_lock_o   => wb_lock_m2s_signal,              -- exclusive access request
   --  wb_ack_i    => '0',                          -- transfer acknowledge
-    wb_ack_i    => wb_ack_s2m_signal,                          -- transfer acknowledge
+    wb_ack_i    => wb_ack_s2m_signal,               -- transfer acknowledge
   --  wb_err_i    => '0',                          -- transfer error
-    wb_err_i    => wb_err_s2m_signal,                          -- transfer error
+    wb_err_i    => wb_err_s2m_signal,               -- transfer error
 
     -- Advanced memory control signals (available if MEM_EXT_EN = true) --
     fence_o     => open,                         -- indicates an executed FENCE operation
@@ -562,8 +559,8 @@ controlador_teclado_inst : entity neorv32.controlador_teclado
   -- IO Connections
   -- -------------------------------------------------------------------------------------------
 
-  micro_2_cont_servo <= gpio_o(10 downto 0); --Conectamos los 6 pines de salida menos significativos a la senal 
-                                            --que se encarga de controlar el servo. Que va desde el micro al controlador del servo
+  micro_2_cont_servo <= gpio_o(10 downto 0);  --Conectamos los 11 pines de salida menos significativos de GPIO_O a la senal 
+                                              --que se encarga de controlar el servo: va desde el micro al controlador del servo
   
 
 
