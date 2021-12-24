@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------------------
--- Company: 
+-- Company: Hogwarts Escuela de Magia y Hechicería
 -- Engineer: Alejandro Torres Muñoz
 -- 
 -- Create Date: 20/12/2021
