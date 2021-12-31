@@ -78,6 +78,7 @@ void blink_led_c(void);
  * @return 0 if execution was successful
  **************************************************************************/
 uint32_t funcion_teclado(void);
+uint32_t valor_servo(void);
 
 
 int main() {
@@ -103,6 +104,8 @@ uint32_t cont = 1;
 uint32_t direccion_lectura; //Direccion base del periferico wishbone al que queremos acceder
 uint32_t valor_leido;
 
+uint32_t porcentaje_servo = 0; //Variable para el control del servo
+
 int columna;
 int fila;
 neorv32_uart0_printf("El valor de cont en la primera vuelta es : %u\n",cont);
@@ -119,17 +122,27 @@ while(1)
     neorv32_uart0_printf("Se va a leer la contrasena.\n");
     valor_leido = neorv32_cpu_load_unsigned_word(direccion_lectura);
     neorv32_uart0_printf("El valor de la contrasena es : %x.\n",valor_leido);
+    neorv32_uart0_printf("El valor de porcentaje servo es : %x.\n",porcentaje_servo);
     neorv32_uart0_printf("Por favor, introduzca el valor de la contrasena por teclado.\n");
     
     uint32_t contrasena_introducida = funcion_teclado();
     neorv32_uart0_printf("Se ha introducido la siguiente contrasena : %x.\n",contrasena_introducida);
-
   if(contrasena_introducida == valor_leido)
   {
     neorv32_uart0_printf("Enhoranbuena. Correcto.\n");
+
+    neorv32_uart0_printf("Introduzca por teclado el valor que desea introducir de velocidad.\n");
+    neorv32_uart0_printf("Un valor entre -2000 y 2000.\n");
+    porcentaje_servo = valor_servo();
+
+    neorv32_gpio_port_set(porcentaje_servo);
+    neorv32_uart0_printf("El valor de porcentaje servo es : %x.\n",porcentaje_servo);
   }
   else
   {
+    porcentaje_servo = 0;
+    neorv32_gpio_port_set(porcentaje_servo);
+    neorv32_uart0_printf("El valor de porcentaje servo es : %x.\n",porcentaje_servo);
     neorv32_uart0_printf("Pruebe otra vez.\n");
   }
 
@@ -158,6 +171,129 @@ void blink_led_c(void) {
   }
 }
 
+*/
+
+
+
+
+
+/*
+uint32_t valor_servo(void)
+{
+uint32_t valores_teclado; //Variable para la lectura de los pines del gpio
+  uint32_t cont = 15;
+  uint32_t mascaras[4] = {0x000f,0x00f0,0x0f00,0xf000}; //Mascaras a aplicar
+  uint32_t valores_fila_lectura[4];
+  uint32_t valores_fila_lectura_anterior[4];
+
+  char arr1[NUM_STRINGS][MAX_LENGTH] = {"NADA","1","4","1 y 4","7","1 y 7","4 y 7","1 y 4 y 7","0","1 y 0","4 y 0","1 y 4 y 0","7 y 0","1 y 7 y 0","4 y 7 y 0","1 y 4 y 7 y 0"};
+  char arr2[NUM_STRINGS][MAX_LENGTH] = {"NADA","2","5","2 y 5","8","2 y 8","5 y 8","2 y 5 y 8","F","2 y F","5 y F","2 y 5 y F","8 y F","2 y 8 y F","5 y 8 y F","2 y 5 y 8 y F"};
+  char arr3[NUM_STRINGS][MAX_LENGTH] = {"NADA","3","6","3 y 6","9","3 y 9","6 y 9","3 y 6 y 9","E","3 y E","6 y E","3 y 6 y E","9 y E","3 y 9 y E","6 y 9 y E","3 y 6 y 9 y E"};
+  char arr4[NUM_STRINGS][MAX_LENGTH] = {"NADA","A","B","A y B","C","A y C","B y C","A y B y C","D","A y D","B y D","A y B y D","C y D","A y C y D","B y C y D","A y B y C y D"};
+
+  uint32_t contrasena_escrita = 0; //Valor que se va a devolver
+  char string_teclas_pulsadas[MAX_LENGTH]; //Cadena que ira almacenando el valor de la tecla que se pulsa por teclado
+  int longitud_teclas_pulsadas;
+  int cont_contrasena = 0;
+
+  int i; //Variable auxiliar para el bucle
+  int flag_escritura_terminada = 0;
+  while(flag_escritura_terminada == 0)
+  {
+      longitud_teclas_pulsadas = 0;
+      valores_teclado = neorv32_gpio_port_get(); //Obtencion del vector de valores del teclado. Solo nos interesan los 16 menos significativos
+      valores_teclado = ~valores_teclado; //Se niega. Por lo tanto, si es un 1, significa que esta pulsado, ya que antes era activa a nivel bajo.
+      //valores_teclado = valores_teclado << 4;
+      //neorv32_uart0_printf("Valor de valores_teclado : %x\n",valores_teclado);
+
+      for(i=0;i<4;i++)
+      {
+          valores_fila_lectura[i] = valores_teclado & mascaras[i];
+          valores_fila_lectura[i] = valores_fila_lectura[i] >>(4*i);
+          //neorv32_uart0_printf("Valor de valores_fila_lectura : %x\n",valores_fila_lectura);
+          switch(i)
+          {
+              case 0:
+                  if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i])
+                  {
+                      neorv32_uart0_printf("Se ha pulsado : %s.\n",arr1[valores_fila_lectura[i]]);
+                      strcpy(string_teclas_pulsadas,arr1[valores_fila_lectura[i]]);
+                      longitud_teclas_pulsadas = strlen(string_teclas_pulsadas);
+                  }
+                  break;
+              case 1:
+                  if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i])
+                  {
+                      neorv32_uart0_printf("Se ha pulsado : %s.\n",arr2[valores_fila_lectura[i]]);
+                      strcpy(string_teclas_pulsadas,arr2[valores_fila_lectura[i]]);
+                      longitud_teclas_pulsadas = strlen(string_teclas_pulsadas);
+                  }
+                  break;
+              case 2:
+                  if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i]) 
+                  {
+                      neorv32_uart0_printf("Se ha pulsado : %s.\n",arr3[valores_fila_lectura[i]]);
+                      strcpy(string_teclas_pulsadas,arr3[valores_fila_lectura[i]]);
+                      longitud_teclas_pulsadas = strlen(string_teclas_pulsadas);
+                  }
+                  break;
+              case 3:
+                  if(valores_fila_lectura[i] > 0 && valores_fila_lectura[i] != valores_fila_lectura_anterior[i])
+                  {
+                      neorv32_uart0_printf("Se ha pulsado : %s.\n",arr4[valores_fila_lectura[i]]);
+                      strcpy(string_teclas_pulsadas,arr4[valores_fila_lectura[i]]);
+                      longitud_teclas_pulsadas = strlen(string_teclas_pulsadas);
+                  }
+                  break;
+              default:
+                  break;
+          }
+        valores_fila_lectura_anterior[i] = valores_fila_lectura[i];
+      }
+
+      if(longitud_teclas_pulsadas == 1)
+      {
+        //int aux = string_teclas_pulsadas[0]-'0'; //Lo convertimos de caracter a entero
+        uint32_t aux = strtol(&string_teclas_pulsadas[0],NULL,16);
+        uint32_t aux2 = aux;
+        neorv32_uart0_printf("El valor de aux2 es : %x.\n",aux2);
+        uint32_t aux3 = aux2<<(28-(4*cont_contrasena));
+        neorv32_uart0_printf("El valor de aux3 es : %x.\n",aux3);
+
+        if(aux2 > 9) //Se ha pulsado una letra
+        {
+          neorv32_uart0_printf("Por favor, pulse solo numeros.\n");
+        }
+        else
+        {
+          contrasena_escrita = contrasena_escrita+aux3;
+          cont_contrasena = cont_contrasena+1;
+        }
+
+
+      }
+      else if(longitud_teclas_pulsadas > 1)
+      {
+        neorv32_uart0_printf("Se han pulsado demasiadas teclas a la vez.\n");
+      }
+
+      if(cont_contrasena == 4)
+      {
+        flag_escritura_terminada = 1;
+      }
+      else if(cont_contrasena > 4)
+      {
+        neorv32_uart0_printf("cont_contrasena = %x.\n",cont_contrasena);
+      }
+          
+
+      
+  }
+
+  uint32_t valor_final;
+  valor_final = contrasena_escrita >> 16;
+  return valor_final;
+}
 */
 
 uint32_t funcion_teclado(void)
@@ -258,14 +394,9 @@ uint32_t funcion_teclado(void)
         neorv32_uart0_printf("cont_contrasena = %x.\n",cont_contrasena);
       }
           
-      //Parte encarga de dar valores a la senal del controlador
-      //Recordamos que debemos escribir sobre los 7 pines significativos del controlador el valor
-      //neorv32_gpio_port_set(porcentaje_servo);
-      //neorv32_uart0_printf("El valor de porcentaje servo es : %x.\n",porcentaje_servo);
 
       
   }
 
   return contrasena_escrita;
 }
-
