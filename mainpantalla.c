@@ -100,6 +100,12 @@ int puntero_caracter = 0;
 int puntero_linea_0 = 0;
 
 //----------------------------------------------//
+//Variables para mostrar las recetas disponibles
+#define DIR_PUNTERO_RECETA 0x00000018 //Direccion donde se almacena el valor del puntero
+char nombre_receta_a_mostrar[longitud];
+int puntero_a_nombre_receta; //Puntero al numero de nombre de receta a mostrar
+
+//----------------------------------------------//
 //----------------------------------------------//
 //----------------------------------------------//
 // =======================================================================
@@ -217,6 +223,7 @@ int mostrar_reloj_pulsado = 0; //Flag para que el estado de la variable "mostrar
 int cambiar_tam_letra_pulsado = 0;
 int cambiar_color_fondo_pulsado = 0;
 int elegir_receta_pulsado = 0; //Flag para que se pase a elegir receta solo cuando se suelte el boton
+int mostrar_recetas_pulsado = 0; //Flag para que se pase a mostrar las recetas disponibles
 //Variables para que los botones de salvar y volver se activen por flanco de bajada
 int avanza_e0_pulsado = 0;
 int back_e1_pulsado = 0;
@@ -225,6 +232,7 @@ int save_e2_pulsado = 0;
 int back_e3_pulsado = 0;
 int back_e4_pulsado = 0;
 int save_e4_pulsado = 0;
+int back_e6_pulsado = 0;
 
 
 
@@ -247,15 +255,6 @@ int tamano_cadenas = 16;
 int flag_fin_lectura = 0; //Flag para determinar si hemos terminado de leer el archivo txt
 
 
-//Variables para la funcion lee_receta_gets
-
-char lineas_texto[3][longitud];
-char lineas_texto_aux[3][300];
-fpos_t pos; //Para almacenar la posicion del puntero en el archivo
-fpos_t pos_ant; //En el instante anterior
-fpos_t pos_2;
-fpos_t pos_retorno;
-fpos_t pos_aux;
 
 
 //Para el boton de avance en la lectura de la receta
@@ -284,6 +283,12 @@ char *ExtraeReceta(char *receta_a_extraer);
 void SetMostrarReceta(void);
 void ResetMostrarReceta(void);
 void MostrarReceta(char *receta_a_leer_en_una_linea);
+//Para mostar los nombres de las recetas
+void AvanzarNombreRecetas(void);
+void RetrocederNombreRecetas(void);
+void ResetPunteroNombresRecetas(void);
+int CheckPunteroRecetas(void);
+void MostrarNombresRecetas(void);
 //TIMERS
 void Timer0IntHandler(void)
 {
@@ -325,6 +330,10 @@ void interrupcion_botones(void)
             IncTamLetra();
             UARTprintf("Actualizado el valor tam_letra a : %d.\n",tam_letra);
         }
+        else if(estado == 6) //Estamos en el estado de visualizar los nombres de las recetas
+        {
+            AvanzarNombreRecetas();
+        }
 
         GPIOIntClear(GPIO_PORTJ_BASE, GPIO_PIN_0);
 
@@ -339,6 +348,10 @@ void interrupcion_botones(void)
         {
             DecTamLetra(); //Decrementamos el tamano de la letra
             UARTprintf("Actualizado el valor de tam_letra a : %d.\n",tam_letra);
+        }
+        else if(estado == 6) //Estamos en el estado de visualizar los nombres de las recetas
+        {
+            RetrocederNombreRecetas();
         }
 
         GPIOIntClear(GPIO_PORTJ_BASE,GPIO_PIN_1);
@@ -1262,6 +1275,139 @@ void MostrarReceta(char *receta_a_leer_en_una_linea)
 
 }
 
+void ResetPunteroNombresRecetas(void)
+{
+    //Funcion para resetear la direccion de memoria del puntero para mostrar los nombres de las recetas
+    uint32_t estado_puntero_recetas;
+    uint32_t direccion ;
+
+
+    direccion = (uint32_t)DIR_PUNTERO_RECETA;
+    estado_puntero_recetas = (uint32_t)0;
+    ReseteaValoresEEPROM(direccion,estado_puntero_recetas); //Reseteamos el valor del puntero
+    puntero_a_nombre_receta = 0; //Actualizamos el valor de la variable global
+}
+
+void AvanzarNombreRecetas(void)
+{
+    //Funcion para avanzar el puntero de los nombres de las recetas
+    uint32_t direccion;
+    uint32_t num_bytes = 4;
+    direccion = (uint32_t)DIR_PUNTERO_RECETA; //Guardamos la direccion donde mirar
+    int valor_puntero_actual = CheckPunteroRecetas(); //Extraemos el valor del punteor
+
+    //Obtenemos el numero de recetas
+    int num_recetas = (int)(sizeof(nombres_recetas)/sizeof(nombres_recetas[0]));
+
+    if(valor_puntero_actual < num_recetas-1)
+    {
+        //Si podemos incrementar
+        valor_puntero_actual = valor_puntero_actual + 1; //Incrementamos en 1 en el caso contrario
+    }
+
+    uint32_t valor_puntero_a_escribir = (uint32_t)valor_puntero_actual;
+    //Escribimos sobre la direccion de memoria
+    EEPROMProgram(&valor_puntero_a_escribir, direccion, num_bytes); //Limpiamos el numero de usuarios
+    uint32_t resu_status = EEPROMStatusGet();
+
+    while( resu_status != 0) //Esperamos a que se quede libre de la operacion anterior
+    {
+        resu_status = EEPROMStatusGet();
+    }
+
+    puntero_a_nombre_receta = valor_puntero_actual; //Actualizamos la variable global
+    UARTprintf("El valor del puntero a receta actual, tras incrementar, es : %d.\n",valor_puntero_actual);
+
+}
+
+void RetrocederNombreRecetas(void)
+{
+    //Funcion para retroceder el puntero de los nombres de las recetas
+    uint32_t direccion;
+    uint32_t num_bytes = 4;
+    direccion = (uint32_t)DIR_PUNTERO_RECETA; //Guardamos la direccion donde mirar
+    int valor_puntero_actual = CheckPunteroRecetas(); //Extraemos el valor del punteor
+
+    if(valor_puntero_actual == 0)
+    {
+        //Si ya estamos en el minimo
+        valor_puntero_actual = 0; //Nos quedamos en el minimo
+    }
+    else
+    {
+        valor_puntero_actual = valor_puntero_actual - 1; //Incrementamos en 1 en el caso contrario
+    }
+
+    //Escribimos sobre la direccion de memoria
+    uint32_t valor_a_escribir = (uint32_t)valor_puntero_actual;
+    EEPROMProgram(&valor_a_escribir, direccion, num_bytes); //Limpiamos el numero de usuarios
+    uint32_t resu_status = EEPROMStatusGet();
+
+    while( resu_status != 0) //Esperamos a que se quede libre de la operacion anterior
+    {
+        resu_status = EEPROMStatusGet();
+    }
+
+    puntero_a_nombre_receta = valor_puntero_actual; //Actualizamos el valor de la variable global
+    UARTprintf("El valor del puntero a receta actual, tras decrementar, es : %d.\n",valor_puntero_actual);
+
+}
+
+int CheckPunteroRecetas(void)
+{
+    //Funcion para chequear el valor del puntero de los nombres de las recetas
+    int resultado; //Valor a devolver
+
+    uint32_t direccion;
+    uint32_t valor;
+    uint32_t num_bytes = 4;
+    direccion = (uint32_t)DIR_PUNTERO_RECETA;
+    EEPROMRead(&valor, direccion, num_bytes); //Extraemos el valor
+
+    uint32_t resu_status; //Para almacenar el valor del estado EEPROM
+    resu_status = EEPROMStatusGet();
+        while( resu_status != 0) //Esperamos a que se quede libre de la operacion anterior
+    {
+        resu_status = EEPROMStatusGet();
+    }
+
+    //Sacamos el maximo de recetas disponibles
+    int num_recetas = (int)(sizeof(nombres_recetas)/sizeof(nombres_recetas[0]));
+
+    if((int)valor < 0)
+    {
+        //En el caso de un valor negativo, se indicaria como un error. Por tanto, se resetea el valor de ese "registro"
+        ResetPunteroNombresRecetas();
+        resultado = 0;
+    }
+    else if((int)valor > num_recetas-1)
+    {
+        //En el caso de un valor superior al numero de recetas posibles
+        ResetPunteroNombresRecetas();
+        resultado = 0;
+    }
+    else
+    {
+        //En el caso de que todo haya ido bien
+        resultado = (int)valor;
+    }
+
+    puntero_a_nombre_receta = resultado; //Escribimos sobre la variable global
+    UARTprintf("El valor del puntero a receta actual es : %d.\n",resultado);
+    return resultado;
+}
+
+void MostrarNombresRecetas(void)
+{
+    //Funcion para mostrar los nombres de las recetas
+    memset(nombre_receta_a_mostrar,0,longitud); //Limpiamos la cadena a mostrar
+    strcpy(nombre_receta_a_mostrar,nombres_recetas[puntero_a_nombre_receta]); //Copiamos el nombre
+    ComTXT(HSIZE/2, (VSIZE/2)+40,tam_letra,OPT_CENTER,nombre_receta_a_mostrar); //Lo mostramos en la pantalla
+
+}
+
+
+
 int main(void) {
 
 
@@ -1333,6 +1479,9 @@ int main(void) {
 
     //Configuracion del "registro" para mostrar receta
     ResetMostrarReceta(); //Lo reseteamos a 0
+
+    //Configuracion del "registro" del puntero para mostrar los nombres de las recetas
+    ResetPunteroNombresRecetas();
 
     //Configuracion del color de fondo de la pantalla
     int *check_colores_fondo = CheckColorFondo();
@@ -1570,6 +1719,23 @@ int main(void) {
                         }
                         cambiar_color_fondo_pulsado = 0;
                     }
+//---------------------------------------------------------------------------------------------//
+                    //Pintamos el boton para mostrar las recetas disponibles
+                    ComColor(0,0,0);
+                    ComFgcolor(255, 255, 255);
+                    if(Boton(((HSIZE)/2)-50,(VSIZE/4)+50, 60, 20, 16, "Mostrar recetas disponibles"))
+                    {
+                        mostrar_recetas_pulsado = 1;
+                    }
+                    else
+                    {
+                        if(mostrar_recetas_pulsado == 1)
+                        {
+                            //Se habia pulsado el boton de mostrar recetas
+                            estado = 6; //Pasamos al estado de mostrar recetas
+                        }
+                        mostrar_recetas_pulsado = 0;
+                    }
 
 //---------------------------------------------------------------------------------------------//
                     //Pintamos boton para volver a la pantalla principal
@@ -1588,6 +1754,7 @@ int main(void) {
                         }
                         back_e1_pulsado = 0;
                     }
+
 
                     break;
                 case 2:
@@ -1756,21 +1923,31 @@ int main(void) {
                     }
 
                     break;
-                case 5:
-                    //El caso de que se elija seleccionar una receta
-                    teclado(35); //Funcion del teclado
+                case 6:
+                    //El caso en el que se muestran las recetas disponibles
+                    //Mostramos lo texto principales
                     ComColor(255,255,255);
-                    ComTXT((HSIZE/4)+10, VSIZE/8,16,OPT_CENTER,"Receta :");
-                    ComRect(HSIZE/2,(VSIZE/8)-10, HSIZE, (VSIZE/8)+10, true); //Cuadro de nombre
-                    ComColor(0,0,0);
-                    strcpy(nombre_receta_introducida,texto_introducido);
-                    ComTXT(HSIZE*3/4, VSIZE/8, 22, OPT_CENTER,nombre_receta_introducida);
-                    ComFgcolor(0, 255, 0);
-                    if(Boton((HSIZE/10)-20,VSIZE/4, 20, 20, 16, "Save"))
+                    ComTXT(HSIZE/2, (VSIZE/4)-10,tam_letra,OPT_CENTER,"Pulse B1 para pasar de nombre.");
+                    ComTXT(HSIZE/2, (VSIZE/4)+30,tam_letra,OPT_CENTER,"Pulse B2 para volver en nombre.");
+                    MostrarNombresRecetas(); //Funcion para mostrar la receta
+
+                    //Pintamos boton para volver
+                    ComColor(255,255,255);
+                    ComFgcolor(255, 0, 0);
+                    if(Boton((HSIZE/10)-20, VSIZE/10, 20, 20, 16, "Back"))
                     {
-                        UARTprintf("%s es el valor de nombre_receta_introducida\n",nombre_receta_introducida);
-                        UARTprintf("Buscando receta entre los archivos.\n");
+                        back_e6_pulsado = 1;
                     }
+                    else
+                    {
+                        if(back_e6_pulsado == 1)
+                        {
+                            //Se habia pulsado el back
+                            estado = 1; //Volvemos al estado de ajustes
+                        }
+                        back_e6_pulsado = 0;
+                    }
+
 
                     break;
                 default:
